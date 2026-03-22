@@ -333,7 +333,13 @@ if (!fm.fileExists(path)) {
     const n = daysUntil(targetSession.date)
     const label = sprintWeekend ? "Sprint" : "Qualifying"
     if (n < 0) subText = "Season complete"
-    else if (n === 0) subText = `${label} today`
+    else if (n === 0) {
+      const totalMins = Math.ceil((targetSession.date - new Date()) / 60000)
+      const hrs = Math.floor(totalMins / 60)
+      const mins = totalMins % 60
+      const timeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`
+      subText = `${label} in ${timeStr}`
+    }
     else if (n === 1) subText = `1 day to ${label}`
     else subText = `${n} days to ${label}`
   }
@@ -364,20 +370,7 @@ if (!fm.fileExists(path)) {
 
   titleRow.addSpacer()
 
-  w.addSpacer(6)
-
-  let monthRow = w.addStack()
-  monthRow.layoutHorizontally()
-  monthRow.addSpacer()
-  let monthCol = monthRow.addStack()
-  monthCol.size = new Size(GRID_WIDTH, 0)
-  let monthLabel = monthCol.addText(monthBase.toLocaleString("default", { month: "long" }).toUpperCase())
-  monthLabel.textColor = SUBTEXT
-  monthLabel.font = Font.systemFont(8)
-  monthLabel.lineLimit = 1
-  monthRow.addSpacer()
-
-  w.addSpacer(4)
+  w.addSpacer(8)
 
   let gridWrap = w.addStack()
   gridWrap.layoutHorizontally()

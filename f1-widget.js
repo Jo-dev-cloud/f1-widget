@@ -12,6 +12,7 @@ const SUBTEXT = new Color("#d6d6d6")
 const DOT_DEFAULT = new Color("#ffffff", 0.18)
 const DOT_PAST = new Color("#ffffff", 0.5)
 
+const DOT_FP = new Color("#A6051A", 0.75)
 const DOT_SPRINT = new Color("#ff5a52", 0.70)
 const DOT_QUALI = new Color("#ffd84d", 0.85)
 const DOT_RACE = new Color("#57d163", 1.0)
@@ -158,19 +159,25 @@ if (!fm.fileExists(path)) {
   // ---------- NEXT RACE / FALLBACK ----------
   let nextGP = null
   let targetSession = null
-  let sprintWeekend = false
   let referenceDate = new Date()
 
   for (let g of groups) {
     let sprint = g.find(e => e.session === "sprint")
     let quali = g.find(e => e.session === "qualifying")
-    let target = sprint || quali
-    if (!target) continue
-    if (target.date > new Date()) {
+    let race = g.find(e => e.session === "race")
+
+    let prefTarget = sprint || quali
+    if (prefTarget && prefTarget.date > new Date()) {
       nextGP = g[0].gp
-      targetSession = target
-      sprintWeekend = !!sprint
-      referenceDate = target.date
+      targetSession = prefTarget
+      referenceDate = prefTarget.date
+      break
+    }
+
+    if (race && race.date > new Date()) {
+      nextGP = g[0].gp
+      targetSession = race
+      referenceDate = race.date
       break
     }
   }
@@ -182,7 +189,6 @@ if (!fm.fileExists(path)) {
     let race = g.find(e => e.session === "race")
     nextGP = g[0].gp
     targetSession = sprint || quali || race || g[g.length - 1]
-    sprintWeekend = !!sprint
     referenceDate = targetSession.date
   }
 
@@ -257,8 +263,10 @@ if (!fm.fileExists(path)) {
     }
 
     const hasSprint = sessions.includes("sprint")
-    const hasQuali = sessions.includes("qualifying")
+    const hasSprintQuali = sessions.includes("sprint qualifying")
+    const hasQuali = sessions.includes("qualifying") || hasSprintQuali
     const hasRace = sessions.includes("race")
+    const hasPractice = sessions.some(s => s.startsWith("practice"))
 
     // All three on same day — show quali/race split, sprint implied
     if (hasRace && hasQuali && hasSprint) {
@@ -312,6 +320,13 @@ if (!fm.fileExists(path)) {
       return
     }
 
+    // Practice only
+    if (hasPractice) {
+      if (today) cell.backgroundImage = drawTodayRingDot(DOT_SIZE, DOT_FP)
+      else cell.backgroundColor = DOT_FP
+      return
+    }
+
     cell.backgroundColor = DOT_DEFAULT
   }
 
@@ -331,13 +346,13 @@ if (!fm.fileExists(path)) {
 
   if (targetSession) {
     const n = daysUntil(targetSession.date)
-    const label = sprintWeekend ? "Sprint" : "Qualifying"
+    const label = targetSession.session.split(" ").map(w => w[0].toUpperCase() + w.slice(1)).join(" ")
     if (n < 0) subText = "Season complete"
     else if (n === 0) {
       const totalMins = Math.ceil((targetSession.date - new Date()) / 60000)
       const hrs = Math.floor(totalMins / 60)
       const mins = totalMins % 60
-      const timeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`
+      const timeStr = hrs > 0 ? `${hrs}h ${String(mins).padStart(2, "0")}m` : `${mins}m`
       subText = `${label} in ${timeStr}`
     }
     else if (n === 1) subText = `1 day to ${label}`
@@ -416,6 +431,13 @@ if (!fm.fileExists(path)) {
   gridWrap.addSpacer()
 
   w.addSpacer()
+
+  const now = new Date()
+  if (targetSession && daysUntil(targetSession.date) === 0) {
+    w.refreshAfterDate = new Date(now.getTime() + 5 * 60 * 1000)
+  } else {
+    w.refreshAfterDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+  }
 
   Script.setWidget(w)
   if (!config.runsInWidget) w.presentSmall()

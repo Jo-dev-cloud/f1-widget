@@ -247,8 +247,10 @@ if (!fm.fileExists(path)) {
   }
 
   function styleCell(cell, d) {
-    let sessions = getSessionsForDate(d)
-    const past = isPast(d)
+    const allSessions = getSessionsForDate(d)
+    const now = new Date()
+    const sessions = events.filter(e => sameDay(e.date, d) && e.date > now).map(e => e.session)
+    const past = isPast(d) || (allSessions.length > 0 && sessions.length === 0)
     const today = sameDay(d, new Date())
 
     if (past) {
@@ -438,6 +440,8 @@ if (!fm.fileExists(path)) {
   } else {
     w.refreshAfterDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
   }
+
+  w.url = "f1://"
 
   Script.setWidget(w)
   if (!config.runsInWidget) w.presentSmall()

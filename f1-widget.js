@@ -441,7 +441,7 @@ if (!fm.fileExists(path)) {
     w.refreshAfterDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
   }
 
-  w.url = "f1://"
+  w.url = "formula1://"
 
   Script.setWidget(w)
   if (!config.runsInWidget) w.presentSmall()

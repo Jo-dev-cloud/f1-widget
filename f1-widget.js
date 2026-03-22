@@ -207,9 +207,43 @@ if (!fm.fileExists(path)) {
     return ctx.getImage()
   }
 
+  function drawTodayRingDot(size, fillColor) {
+    const inset = 1.5
+    let ctx = new DrawContext()
+    ctx.size = new Size(size, size)
+    ctx.opaque = false
+    ctx.respectScreenScale = true
+    ctx.setFillColor(new Color("#ffffff", 0.85))
+    ctx.fillEllipse(new Rect(0, 0, size, size))
+    ctx.setFillColor(fillColor)
+    ctx.fillEllipse(new Rect(inset, inset, size - 2 * inset, size - 2 * inset))
+    return ctx.getImage()
+  }
+
+  function drawSplitTodayRingDot(size, leftColor, rightColor) {
+    const inset = 1.5
+    const inner = size - 2 * inset
+    let ctx = new DrawContext()
+    ctx.size = new Size(size, size)
+    ctx.opaque = false
+    ctx.respectScreenScale = true
+    ctx.setFillColor(new Color("#ffffff", 0.85))
+    ctx.fillEllipse(new Rect(0, 0, size, size))
+    let path = new Path()
+    path.addEllipse(new Rect(inset, inset, inner, inner))
+    ctx.addPath(path)
+    ctx.clip()
+    ctx.setFillColor(leftColor)
+    ctx.fillRect(new Rect(inset, inset, inner / 2, inner))
+    ctx.setFillColor(rightColor)
+    ctx.fillRect(new Rect(inset + inner / 2, inset, inner / 2, inner))
+    return ctx.getImage()
+  }
+
   function styleCell(cell, d) {
     let sessions = getSessionsForDate(d)
     const past = isPast(d)
+    const today = sameDay(d, new Date())
 
     if (past) {
       cell.backgroundColor = DOT_PAST
@@ -217,7 +251,8 @@ if (!fm.fileExists(path)) {
     }
 
     if (sessions.length === 0) {
-      cell.backgroundColor = DOT_DEFAULT
+      if (today) cell.backgroundImage = drawTodayRingDot(DOT_SIZE, BG)
+      else cell.backgroundColor = DOT_DEFAULT
       return
     }
 
@@ -227,43 +262,53 @@ if (!fm.fileExists(path)) {
 
     // All three on same day — show quali/race split, sprint implied
     if (hasRace && hasQuali && hasSprint) {
-      cell.backgroundImage = drawSplitDot(DOT_SIZE, DOT_QUALI, DOT_RACE)
+      cell.backgroundImage = today
+        ? drawSplitTodayRingDot(DOT_SIZE, DOT_QUALI, DOT_RACE)
+        : drawSplitDot(DOT_SIZE, DOT_QUALI, DOT_RACE)
       return
     }
 
     // Race + Quali same day
     if (hasRace && hasQuali) {
-      cell.backgroundImage = drawSplitDot(DOT_SIZE, DOT_QUALI, DOT_RACE)
+      cell.backgroundImage = today
+        ? drawSplitTodayRingDot(DOT_SIZE, DOT_QUALI, DOT_RACE)
+        : drawSplitDot(DOT_SIZE, DOT_QUALI, DOT_RACE)
       return
     }
 
     // Race + Sprint same day
     if (hasRace && hasSprint) {
-      cell.backgroundImage = drawSplitDot(DOT_SIZE, DOT_SPRINT, DOT_RACE)
+      cell.backgroundImage = today
+        ? drawSplitTodayRingDot(DOT_SIZE, DOT_SPRINT, DOT_RACE)
+        : drawSplitDot(DOT_SIZE, DOT_SPRINT, DOT_RACE)
       return
     }
 
     // Race alone
     if (hasRace) {
-      cell.backgroundColor = DOT_RACE
+      if (today) cell.backgroundImage = drawTodayRingDot(DOT_SIZE, DOT_RACE)
+      else cell.backgroundColor = DOT_RACE
       return
     }
 
     // Sprint + Quali same day — red (sprint takes priority)
     if (hasSprint && hasQuali) {
-      cell.backgroundColor = DOT_SPRINT
+      if (today) cell.backgroundImage = drawTodayRingDot(DOT_SIZE, DOT_SPRINT)
+      else cell.backgroundColor = DOT_SPRINT
       return
     }
 
     // Quali alone — always yellow
     if (hasQuali) {
-      cell.backgroundColor = DOT_QUALI
+      if (today) cell.backgroundImage = drawTodayRingDot(DOT_SIZE, DOT_QUALI)
+      else cell.backgroundColor = DOT_QUALI
       return
     }
 
     // Sprint alone — red
     if (hasSprint) {
-      cell.backgroundColor = DOT_SPRINT
+      if (today) cell.backgroundImage = drawTodayRingDot(DOT_SIZE, DOT_SPRINT)
+      else cell.backgroundColor = DOT_SPRINT
       return
     }
 
@@ -319,7 +364,20 @@ if (!fm.fileExists(path)) {
 
   titleRow.addSpacer()
 
-  w.addSpacer(8)
+  w.addSpacer(6)
+
+  let monthRow = w.addStack()
+  monthRow.layoutHorizontally()
+  monthRow.addSpacer()
+  let monthCol = monthRow.addStack()
+  monthCol.size = new Size(GRID_WIDTH, 0)
+  let monthLabel = monthCol.addText(monthBase.toLocaleString("default", { month: "long" }).toUpperCase())
+  monthLabel.textColor = SUBTEXT
+  monthLabel.font = Font.systemFont(8)
+  monthLabel.lineLimit = 1
+  monthRow.addSpacer()
+
+  w.addSpacer(4)
 
   let gridWrap = w.addStack()
   gridWrap.layoutHorizontally()

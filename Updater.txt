@@ -1,0 +1,15 @@
+const WIDGET_URL = "https://raw.githubusercontent.com/Jo-dev-cloud/f1-widget/main/f1-widget.js"
+const TXT_URL = "https://raw.githubusercontent.com/Jo-dev-cloud/f1-widget/main/f1_2026.txt"
+
+const fm = FileManager.iCloud()
+const dir = fm.documentsDirectory()
+
+const widgetReq = new Request(WIDGET_URL)
+const widgetCode = await widgetReq.loadString()
+fm.writeString(fm.joinPath(dir, "f1-widget.js"), widgetCode)
+
+const txtReq = new Request(TXT_URL)
+const txtData = await txtReq.loadString()
+fm.writeString(fm.joinPath(dir, "f1_2026.txt"), txtData)
+
+console.log("Updated successfully!")
